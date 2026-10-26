@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL Query Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a working console. Left rail = tables + challenges, main = editor over results. Stacks to one column on phones. */
+:root{
+  --bg:#F5F7FA; --panel:#FFFFFF; --ink:#16213F; --muted:#56607A; --line:#D8DEE8;
+  --navy:#1B2B5E; --teal:#0D9488; --teal-soft:#E2F3F1; --code-bg:#F0F3F8;
+  --good:#15803D; --good-soft:#E3F4E8; --warn:#B45309; --warn-soft:#FDF1E1; --bad:#B91C1C; --bad-soft:#FBE7E7;
+  --display:"Source Serif 4", Cambria, Georgia, serif;
+  --body:"Source Sans 3", Calibri, "Segoe UI", Arial, sans-serif;
+  --mono:"JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1424; --panel:#161E33; --ink:#E6EAF3; --muted:#9AA4BC; --line:#2A3552;
+  --navy:#9DB4F0; --teal:#2DD4BF; --teal-soft:#123A3A; --code-bg:#10182B;
+  --good:#4ADE80; --good-soft:#12301F; --warn:#FBBF24; --warn-soft:#33270F; --bad:#F87171; --bad-soft:#3A1717; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1424; --panel:#161E33; --ink:#E6EAF3; --muted:#9AA4BC; --line:#2A3552;
+  --navy:#9DB4F0; --teal:#2DD4BF; --teal-soft:#123A3A; --code-bg:#10182B;
+  --good:#4ADE80; --good-soft:#12301F; --warn:#FBBF24; --warn-soft:#33270F; --bad:#F87171; --bad-soft:#3A1717; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px;margin-bottom:16px}
+h1{font-family:var(--display);font-size:1.75rem;margin:0;color:var(--navy);text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0}
+.keys{font-size:.85rem;color:var(--muted)}
+.keys code{font-family:var(--mono);font-size:.8rem;background:var(--code-bg);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--ink)}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}.grid>aside{order:2}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0}
+.panel h2{font-family:var(--display);font-size:1.05rem;margin:0;color:var(--navy)}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.pbody{padding:12px 14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{font:600 .9rem var(--body);border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--navy);border-color:var(--navy);color:var(--panel)}
+.schema{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px}
+.schema td{padding:4px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.schema td:first-child{font-family:var(--mono);font-size:.8rem;cursor:pointer;color:var(--ink)}
+.schema td:first-child:hover{color:var(--teal)}
+.schema td:last-child{color:var(--muted);text-align:right}
+.pk{font:700 .65rem var(--body);letter-spacing:.06em;color:var(--teal);border:1px solid var(--teal);border-radius:3px;padding:0 3px;margin-left:6px}
+.hint-small{font-size:.8rem;color:var(--muted);margin:8px 0 0}
+.chal{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.chal li{border-bottom:1px solid var(--line)}
+.chal li:last-child{border-bottom:0}
+.chal button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:22px 1fr;gap:8px;width:100%;padding:9px 14px;cursor:pointer;font-size:.9rem}
+.chal button:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+.chal li.active button{background:var(--teal-soft)}
+.dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font:700 .7rem var(--body);color:var(--muted);margin-top:1px}
+.done .dot{background:var(--good);border-color:var(--good);color:var(--panel)}
+.progress{font-size:.8rem;color:var(--muted)}
+.task{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.task .label{font:700 .72rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.task p{margin:0;font-size:1rem}
+.task .row{display:flex;flex-wrap:wrap;gap:8px}
+.editor{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+textarea{width:100%;min-height:120px;resize:vertical;font:400 .95rem/1.55 var(--mono);color:var(--ink);background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;tab-size:4}
+textarea:focus{outline:2px solid var(--teal);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 .78rem var(--mono);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.chip:hover{border-color:var(--teal);color:var(--teal)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:700 .92rem var(--body);border-radius:8px;padding:8px 16px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.navy{background:var(--navy);border-color:var(--navy);color:var(--panel)}
+.btn:focus-visible,.tab:focus-visible,.chip:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.small{padding:5px 10px;font-size:.82rem}
+.spacer{flex:1}
+.msg{border-radius:8px;padding:10px 12px;font-size:.92rem;border:1px solid transparent}
+.msg strong{display:block}
+.msg.good{background:var(--good-soft);border-color:var(--good);color:var(--ink)}
+.msg.good strong{color:var(--good)}
+.msg.bad{background:var(--bad-soft);border-color:var(--bad)}
+.msg.bad strong{color:var(--bad)}
+.msg.warn{background:var(--warn-soft);border-color:var(--warn)}
+.msg.warn strong{color:var(--warn)}
+.msg.info{background:var(--teal-soft);border-color:var(--teal)}
+.msg code,.answer code{font-family:var(--mono);font-size:.85rem}
+.answer{font:400 .88rem/1.5 var(--mono);background:var(--code-bg);border:1px dashed var(--line);border-radius:6px;padding:8px 10px;white-space:pre-wrap;margin:0}
+.results{padding:0 14px 14px}
+.rmeta{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted);padding:10px 0 6px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;max-height:420px;overflow-y:auto}
+table.data{border-collapse:collapse;width:100%;font-size:.86rem;font-variant-numeric:tabular-nums}
+table.data th{position:sticky;top:0;background:var(--navy);color:var(--panel);text-align:left;font-weight:600;padding:6px 10px;white-space:nowrap}
+table.data td{padding:5px 10px;border-top:1px solid var(--line);white-space:nowrap}
+table.data tr:nth-child(even) td{background:var(--code-bg)}
+td.num{text-align:right}
+.null{color:var(--muted);font-style:italic}
+.empty{padding:22px;text-align:center;color:var(--muted);font-size:.9rem}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+details.ref summary{cursor:pointer;font-weight:600;color:var(--navy)}
+details.ref{font-size:.88rem}
+details.ref ul{margin:6px 0 0;padding-left:18px}
+details.ref code{font-family:var(--mono);font-size:.8rem}
+@media (prefers-reduced-motion: no-preference){.msg{animation:pop .18s ease-out}@keyframes pop{from{transform:translateY(-3px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body style="margin:0">
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>SQL Query Lab</h1>
+      <p class="sub">Practise IGCSE Computer Science SQL on real tables. Write a query, run it, check your answer.</p>
+    </div>
+    <div class="keys">Run: <code>Ctrl</code> + <code>Enter</code> (Mac: <code>⌘</code> + <code>Enter</code>)</div>
+  </header>
+
+  <div id="loading" class="panel loading">Loading the database engine…</div>
+
+  <div class="grid" id="app" hidden>
+    <aside style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <section class="panel">
+        <div class="phead"><h2>Tables</h2><button class="btn small" id="resetBtn" type="button">Reset data</button></div>
+        <div class="pbody">
+          <div class="tabs" role="tablist" id="tableTabs"></div>
+          <table class="schema" id="schema"></table>
+          <p class="hint-small">Click a field name to add it to your query. <span id="rowCount"></span></p>
+          <div style="margin-top:8px"><button class="btn small" id="viewTableBtn" type="button">Show all data</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="phead"><h2>Challenges</h2><span class="progress" id="progress"></span></div>
+        <ol class="chal" id="chalList"></ol>
+      </section>
+
+      <section class="panel">
+        <div class="pbody">
+          <details class="ref">
+            <summary>SQL you need for the exam</summary>
+            <ul>
+              <li><code>SELECT</code> the fields to show, or <code>*</code> for all</li>
+              <li><code>FROM</code> the table name</li>
+              <li><code>WHERE</code> a condition: <code>= &lt; &lt;= &gt; &gt;= &lt;&gt;</code></li>
+              <li><code>AND</code> / <code>OR</code> to combine conditions</li>
+              <li><code>ORDER BY</code> field <code>ASC</code> (A–Z, low–high) or <code>DESC</code></li>
+              <li><code>COUNT(*)</code> how many records · <code>SUM(field)</code> total</li>
+              <li>Text values go in quotes: <code>WHERE House = 'Blue'</code></li>
+              <li>Boolean fields: <code>TRUE</code> / <code>FALSE</code> (shown as 1 / 0)</li>
+            </ul>
+          </details>
+        </div>
+      </section>
+    </aside>
+
+    <main class="panel" style="min-width:0">
+      <div class="task" id="taskBox"></div>
+      <div class="editor">
+        <label for="sql" class="hint-small" style="margin:0">Your query</label>
+        <textarea id="sql" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <div class="chips" id="chips"></div>
+        <div class="actions">
+          <button class="btn primary" id="runBtn" type="button">Run query</button>
+          <button class="btn navy" id="checkBtn" type="button">Check answer</button>
+          <span class="spacer"></span>
+          <button class="btn small" id="clearBtn" type="button">Clear</button>
+        </div>
+        <div id="feedback" aria-live="polite"></div>
+      </div>
+      <div class="results" id="results"><div class="empty">Run a query to see the results here.</div></div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-asm.js"></script>
+<script>
+/* =====================================================================
+   TEACHER SETUP: edit the tables and challenges below.
+   Each table: name, fields [name, type label, isPrimaryKey], rows.
+   Each challenge: task text, the model answer (used for checking),
+   and a hint. If the model answer has ORDER BY, row order is checked.
+   ===================================================================== */
+const TABLES = [
+  { name: "Students",
+    fields: [["StudentID","TEXT",true],["FirstName","TEXT"],["LastName","TEXT"],["YearGroup","INTEGER"],["House","TEXT"],["DateOfBirth","DATE"],["TestScore","INTEGER"],["HasLaptop","BOOLEAN"]],
+    rows: [
+      ["S001","Amara","Okafor",10,"Red","2011-03-14",78,1],["S002","Ben","Carter",11,"Blue","2010-07-02",92,0],
+      ["S003","Chloe","Nguyen",10,"Green","2011-11-23",65,1],["S004","Dev","Patel",11,"Yellow","2010-01-30",88,1],
+      ["S005","Ella","Schmidt",10,"Blue","2011-05-09",95,1],["S006","Finn","Murphy",11,"Red","2010-09-17",54,0],
+      ["S007","Grace","Kim",10,"Green","2011-08-21",71,0],["S008","Hiro","Tanaka",11,"Blue","2010-12-05",99,1],
+      ["S009","Isla","Morales",10,"Yellow","2011-02-11",83,1],["S010","Jae","Park",11,"Green","2010-04-26",60,0],
+      ["S011","Kofi","Mensah",10,"Red","2011-06-18",47,1],["S012","Lena","Novak",11,"Yellow","2010-10-03",74,1],
+      ["S013","Maya","Singh",10,"Blue","2011-09-29",88,0],["S014","Noah","Fischer",11,"Red","2010-02-14",69,1],
+      ["S015","Olivia","Brown",10,"Green","2011-12-01",80,1]] ,
+    challenges: [
+      ["Show all the data in the Students table.","SELECT * FROM Students;","Use * to mean every field."],
+      ["Show the FirstName and LastName of every student.","SELECT FirstName, LastName FROM Students;","List the field names after SELECT, separated by commas."],
+      ["Show the FirstName and TestScore of students who scored more than 80.","SELECT FirstName, TestScore FROM Students WHERE TestScore > 80;","Add a WHERE condition after the table name. Numbers do not need quotes."],
+      ["Show the FirstName and LastName of students in Blue house.","SELECT FirstName, LastName FROM Students WHERE House = 'Blue';","Text values must go in single quotes: 'Blue'."],
+      ["Show the FirstName, YearGroup and TestScore of Year 10 students who scored 80 or more.","SELECT FirstName, YearGroup, TestScore FROM Students WHERE YearGroup = 10 AND TestScore >= 80;","Both conditions must be true, so join them with AND. 'Or more' means >=."],
+      ["Show the FirstName and House of students in Red house or Green house.","SELECT FirstName, House FROM Students WHERE House = 'Red' OR House = 'Green';","Either condition can be true, so use OR. Write the field name again after OR."],
+      ["Show the FirstName and TestScore of every student, highest score first.","SELECT FirstName, TestScore FROM Students ORDER BY TestScore DESC;","ORDER BY goes at the end. DESC means highest to lowest."],
+      ["How many students have a laptop?","SELECT COUNT(*) FROM Students WHERE HasLaptop = TRUE;","COUNT(*) counts records. HasLaptop is a Boolean field: use TRUE."],
+      ["What is the total of all the Year 11 test scores?","SELECT SUM(TestScore) FROM Students WHERE YearGroup = 11;","SUM(TestScore) adds up the field. Filter with WHERE first."],
+      ["Show the StudentID and FirstName of Year 11 students who do not have a laptop, in alphabetical order of FirstName.","SELECT StudentID, FirstName FROM Students WHERE YearGroup = 11 AND HasLaptop = FALSE ORDER BY FirstName ASC;","Two conditions joined with AND, then ORDER BY ... ASC for A to Z."]
+    ]},
+  { name: "Books",
+    fields: [["BookID","TEXT",true],["Title","TEXT"],["Author","TEXT"],["Genre","TEXT"],["YearPublished","INTEGER"],["Pages","INTEGER"],["Price","REAL"],["OnLoan","BOOLEAN"]],
+    rows: [
+      ["B01","The Silent Orbit","R. Hale","Science Fiction",2019,342,12.99,1],["B02","Garden of Numbers","P. Iyer","Non-fiction",2021,210,15.50,0],
+      ["B03","Midnight at Kew","L. Ford","Mystery",2017,288,8.99,1],["B04","Code Breakers","A. Moss","Non-fiction",2020,256,18.00,0],
+      ["B05","Red Desert Run","R. Hale","Adventure",2015,198,7.49,0],["B06","The Last Lighthouse","M. Ortiz","Mystery",2022,376,14.25,1],
+      ["B07","Stars Over Lagos","T. Adeyemi","Science Fiction",2023,412,16.99,0],["B08","A Short History of Bridges","P. Iyer","Non-fiction",2018,164,11.00,1],
+      ["B09","Fox and Lantern","K. Sato","Fantasy",2016,230,6.99,0],["B10","The Glass Key Maze","L. Ford","Mystery",2021,304,9.99,0],
+      ["B11","Iron Wings","M. Ortiz","Fantasy",2019,455,13.49,1],["B12","Tide Machines","R. Hale","Science Fiction",2022,389,14.99,1]],
+    challenges: [
+      ["Show the Title and Author of every book.","SELECT Title, Author FROM Books;","List the two field names after SELECT."],
+      ["Show the Title and Price of books that cost less than 10.00.","SELECT Title, Price FROM Books WHERE Price < 10;","Use < for 'less than'. Prices are numbers, so no quotes."],
+      ["Show the Title of every Mystery book.","SELECT Title FROM Books WHERE Genre = 'Mystery';","Genre is text, so put 'Mystery' in quotes."],
+      ["Show the Title and Pages of Science Fiction books with more than 350 pages.","SELECT Title, Pages FROM Books WHERE Genre = 'Science Fiction' AND Pages > 350;","Two conditions that must both be true: use AND."],
+      ["Show the Title and YearPublished of all books, newest first.","SELECT Title, YearPublished FROM Books ORDER BY YearPublished DESC;","Newest first means the biggest year first: DESC."],
+      ["How many books are currently on loan?","SELECT COUNT(*) FROM Books WHERE OnLoan = TRUE;","Count the records where the Boolean field is TRUE."],
+      ["What is the total number of pages of all the books by R. Hale?","SELECT SUM(Pages) FROM Books WHERE Author = 'R. Hale';","SUM(Pages) with a WHERE condition on Author."],
+      ["Show the BookID, Title and Price of Fantasy or Adventure books, cheapest first.","SELECT BookID, Title, Price FROM Books WHERE Genre = 'Fantasy' OR Genre = 'Adventure' ORDER BY Price ASC;","Use OR between the two genres, then ORDER BY Price ASC."]
+    ]},
+  { name: "Products",
+    fields: [["ProductCode","TEXT",true],["ProductName","TEXT"],["Category","TEXT"],["Price","REAL"],["StockLevel","INTEGER"],["Supplier","TEXT"]],
+    rows: [
+      ["P101","USB-C Cable 1m","Cables",4.99,120,"Voltix"],["P102","Wireless Mouse","Peripherals",14.99,35,"Clickwell"],
+      ["P103","Mechanical Keyboard","Peripherals",59.99,8,"Clickwell"],["P104","HDMI Cable 2m","Cables",6.49,75,"Voltix"],
+      ["P105","27-inch Monitor","Displays",189.00,5,"Brightline"],["P106","Webcam HD","Peripherals",29.99,0,"Clickwell"],
+      ["P107","Laptop Stand","Accessories",24.50,18,"Deskly"],["P108","USB Flash Drive 64GB","Storage",9.99,60,"Datanest"],
+      ["P109","External SSD 1TB","Storage",79.99,12,"Datanest"],["P110","Ethernet Cable 5m","Cables",5.99,0,"Voltix"],
+      ["P111","24-inch Monitor","Displays",129.00,9,"Brightline"],["P112","Desk Lamp LED","Accessories",19.99,22,"Deskly"]],
+    challenges: [
+      ["Show the ProductName and Price of every product.","SELECT ProductName, Price FROM Products;","Two fields after SELECT, then FROM Products."],
+      ["Show the ProductName of products that are out of stock.","SELECT ProductName FROM Products WHERE StockLevel = 0;","Out of stock means the StockLevel is 0."],
+      ["Show the ProductCode and ProductName of products not supplied by Voltix.","SELECT ProductCode, ProductName FROM Products WHERE Supplier <> 'Voltix';","<> means 'not equal to'."],
+      ["Show the ProductName, Price and StockLevel of Peripherals that cost more than 20.00.","SELECT ProductName, Price, StockLevel FROM Products WHERE Category = 'Peripherals' AND Price > 20;","Category is text (quotes), Price is a number (no quotes). Join with AND."],
+      ["Show the ProductName and StockLevel of every product, lowest stock first.","SELECT ProductName, StockLevel FROM Products ORDER BY StockLevel ASC;","ASC sorts from lowest to highest."],
+      ["How many products are in the Cables category?","SELECT COUNT(*) FROM Products WHERE Category = 'Cables';","COUNT(*) with a WHERE condition."],
+      ["What is the total number of items in stock across all products?","SELECT SUM(StockLevel) FROM Products;","SUM(StockLevel) adds up every StockLevel."],
+      ["Show the ProductName, Category and Price of Displays or Storage products costing under 100.00, most expensive first.","SELECT ProductName, Category, Price FROM Products WHERE (Category = 'Displays' OR Category = 'Storage') AND Price < 100 ORDER BY Price DESC;","Put brackets round the OR part so the AND applies to both categories."]
+    ]}
+];
+const SYLLABUS = ["SELECT","FROM","WHERE","ORDER","BY","ASC","DESC","AND","OR","NOT","COUNT","SUM","TRUE","FALSE","NULL","IS","AS"];
+const NOT_NEEDED = ["JOIN","GROUP","HAVING","LIKE","IN","BETWEEN","LIMIT","DISTINCT","AVG","MAX","MIN","UNION","INSERT","UPDATE","DELETE","CREATE","DROP","ALTER"];
+const CHIPS = ["SELECT","*","FROM","WHERE","AND","OR","ORDER BY","ASC","DESC","COUNT(*)","SUM()","=","<>",">","<",">=","<=","''",";"];
+
+/* ===================================================================== */
+const $ = id => document.getElementById(id);
+let SQL, db, current = 0, chalIndex = -1;
+const STORE = "sql-query-lab-progress-v1";
+let done = {};
+try { done = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { done = {}; }
+function saveDone(){ try { localStorage.setItem(STORE, JSON.stringify(done)); } catch (e) {} }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function buildDb(){
+  if (db) db.close();
+  db = new SQL.Database();
+  for (const t of TABLES){
+    const cols = t.fields.map(([n,ty,pk]) => {
+      const st = ty === "REAL" ? "REAL" : (ty === "INTEGER" || ty === "BOOLEAN") ? "INTEGER" : "TEXT";
+      return `${n} ${st}${pk ? " PRIMARY KEY" : ""}`;
+    }).join(", ");
+    db.run(`CREATE TABLE ${t.name} (${cols});`);
+    const ph = t.fields.map(() => "?").join(",");
+    const stmt = db.prepare(`INSERT INTO ${t.name} VALUES (${ph});`);
+    for (const r of t.rows) stmt.run(r);
+    stmt.free();
+  }
+}
+
+function renderTabs(){
+  $("tableTabs").innerHTML = TABLES.map((t,i) =>
+    `<button class="tab" role="tab" type="button" aria-selected="${i===current}" data-i="${i}">${esc(t.name)}</button>`).join("");
+}
+function renderSchema(){
+  const t = TABLES[current];
+  $("schema").innerHTML = t.fields.map(([n,ty,pk]) =>
+    `<tr><td data-f="${esc(n)}">${esc(n)}${pk ? '<span class="pk">PK</span>' : ""}</td><td>${esc(ty === "BOOLEAN" ? "BOOLEAN (1 = TRUE)" : ty)}</td></tr>`).join("");
+  let n = 0; try { n = db.exec(`SELECT COUNT(*) FROM ${t.name}`)[0].values[0][0]; } catch (e) {}
+  $("rowCount").textContent = `${t.name} has ${n} records.`;
+}
+function key(i){ return TABLES[current].name + ":" + i; }
+function renderChallenges(){
+  const t = TABLES[current];
+  $("chalList").innerHTML = t.challenges.map((c,i) =>
+    `<li class="${done[key(i)] ? "done" : ""} ${i===chalIndex ? "active" : ""}"><button type="button" data-c="${i}"><span class="dot">${done[key(i)] ? "✓" : i+1}</span><span>${esc(c[0])}</span></button></li>`).join("");
+  const n = t.challenges.filter((_,i) => done[key(i)]).length;
+  $("progress").textContent = `${n} of ${t.challenges.length} done`;
+}
+function renderTask(){
+  const box = $("taskBox");
+  if (chalIndex < 0){
+    box.innerHTML = `<span class="label">Free practice</span><p>Write any query on the <strong>${esc(TABLES[current].name)}</strong> table, or pick a challenge to be checked.</p>`;
+    $("checkBtn").disabled = true; return;
+  }
+  const c = TABLES[current].challenges[chalIndex];
+  box.innerHTML = `<span class="label">Challenge ${chalIndex+1} · ${esc(TABLES[current].name)}</span><p>${esc(c[0])}</p>
+    <div class="row"><button class="btn small" type="button" id="hintBtn">Show hint</button><button class="btn small" type="button" id="freeBtn">Free practice</button></div>
+    <div id="hintArea"></div>`;
+  $("checkBtn").disabled = false;
+  $("hintBtn").onclick = () => { $("hintArea").innerHTML = `<div class="msg info">${esc(c[2])}</div>`; };
+  $("freeBtn").onclick = () => { chalIndex = -1; renderAll(); };
+}
+function renderAll(){ renderTabs(); renderSchema(); renderChallenges(); renderTask(); }
+
+function friendly(err){
+  const m = String(err.message || err);
+  let x;
+  if ((x = m.match(/no such column: (.+)/))) return `There is no field called <code>${esc(x[1])}</code> in this table. Check the spelling against the field list. If you meant a text value, put it in quotes: <code>'${esc(x[1])}'</code>.`;
+  if ((x = m.match(/no such table: (.+)/))) return `There is no table called <code>${esc(x[1])}</code>. The tables are ${TABLES.map(t => "<code>"+t.name+"</code>").join(", ")}.`;
+  if (/incomplete input/.test(m)) return "The query stops too early. Check for a missing value, a closing bracket or a closing quote.";
+  if ((x = m.match(/near "(.+?)": syntax error/))) return `Something is wrong near <code>${esc(x[1])}</code>. Check the keyword order: SELECT … FROM … WHERE … ORDER BY …, and commas between field names.`;
+  if (/misuse of aggregate/.test(m)) return "COUNT and SUM can't be used inside WHERE. Use them after SELECT.";
+  return esc(m);
+}
+function syllabusNote(sql){
+  const words = (sql.toUpperCase().replace(/'[^']*'/g," ").match(/[A-Z_]+/g) || []);
+  const extra = [...new Set(words.filter(w => NOT_NEEDED.includes(w)))];
+  return extra.length ? `<div class="msg warn"><strong>Not needed for the IGCSE exam</strong>${extra.map(w=>"<code>"+w+"</code>").join(", ")} ${extra.length>1?"are":"is"} real SQL, but the exam only uses SELECT, FROM, WHERE, ORDER BY, SUM, COUNT, AND and OR.</div>` : "";
+}
+function runQuery(sql){
+  const res = db.exec(sql);
+  return res.length ? res[res.length-1] : { columns: [], values: [] };
+}
+function showResults(r){
+  const el = $("results");
+  if (!r.columns.length){ el.innerHTML = `<div class="empty">The query ran, but it returns no table to show.</div>`; return; }
+  const isNum = r.columns.map((_,j) => r.values.length && r.values.every(v => v[j] === null || typeof v[j] === "number"));
+  const fmt = v => v === null ? '<span class="null">NULL</span>' : (typeof v === "number" && !Number.isInteger(v) ? v.toFixed(2) : esc(v));
+  el.innerHTML = `<div class="rmeta"><span>${r.values.length} record${r.values.length===1?"":"s"}</span><span>${r.columns.length} field${r.columns.length===1?"":"s"}</span></div>
+    <div class="scroll"><table class="data"><thead><tr>${r.columns.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead>
+    <tbody>${r.values.length ? r.values.map(row => `<tr>${row.map((v,j)=>`<td class="${isNum[j]?"num":""}">${fmt(v)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${r.columns.length}" class="empty">No records match.</td></tr>`}</tbody></table></div>`;
+}
+function doRun(){
+  const sql = $("sql").value.trim();
+  const fb = $("feedback");
+  if (!sql){ fb.innerHTML = `<div class="msg warn"><strong>Nothing to run</strong>Type a query first, e.g. <code>SELECT * FROM ${esc(TABLES[current].name)};</code></div>`; return null; }
+  try {
+    const r = runQuery(sql);
+    fb.innerHTML = syllabusNote(sql);
+    showResults(r); renderSchema();
+    return r;
+  } catch (e){
+    fb.innerHTML = `<div class="msg bad"><strong>The query did not run</strong>${friendly(e)}</div>`;
+    return null;
+  }
+}
+const norm = v => v === null ? "∅" : (typeof v === "number" ? String(Math.round(v*100)/100) : String(v));
+const rowKey = row => row.map(norm).sort().join("\u0001");
+function doCheck(){
+  if (chalIndex < 0) return;
+  const c = TABLES[current].challenges[chalIndex];
+  const mine = doRun(); if (!mine) return;
+  const fb = $("feedback");
+  let exp; try { exp = runQuery(c[1]); } catch (e) { fb.innerHTML = `<div class="msg bad">This challenge's model answer has an error. Ask your teacher.</div>`; return; }
+  const note = syllabusNote($("sql").value);
+  let verdict;
+  if (mine.columns.length !== exp.columns.length){
+    verdict = ["bad","Not yet",`Your query shows ${mine.columns.length} field${mine.columns.length===1?"":"s"}; the task needs ${exp.columns.length}. Check which fields go after SELECT.`];
+  } else if (mine.values.length !== exp.values.length){
+    verdict = ["bad","Not yet",`You have the right number of fields, but ${mine.values.length} record${mine.values.length===1?"":"s"} instead of ${exp.values.length}. Check your WHERE condition.`];
+  } else {
+    const a = mine.values.map(rowKey), b = exp.values.map(rowKey);
+    const sameSet = [...a].sort().join("\u0002") === [...b].sort().join("\u0002");
+    const ordered = /ORDER\s+BY/i.test(c[1]);
+    if (!sameSet) verdict = ["bad","Not yet","The number of records is right, but the values are different. Check the fields you selected and your condition."];
+    else if (ordered && a.join("\u0002") !== b.join("\u0002")) verdict = ["warn","Nearly there","You have the right records, but in the wrong order. Check your ORDER BY field and whether it should be ASC or DESC."];
+    else verdict = ["good","Correct!","Your query gives exactly the right result."];
+  }
+  if (verdict[0] === "good"){ done[key(chalIndex)] = true; saveDone(); renderChallenges(); }
+  const nextBtn = verdict[0] === "good" && chalIndex < TABLES[current].challenges.length - 1 ? `<div style="margin-top:8px"><button class="btn small" type="button" id="nextBtn">Next challenge</button></div>` : "";
+  const reveal = verdict[0] !== "good" ? `<div style="margin-top:8px"><button class="btn small" type="button" id="revealBtn">Show a model answer</button></div><div id="revealArea"></div>` : "";
+  fb.innerHTML = `<div class="msg ${verdict[0]}"><strong>${verdict[1]}</strong>${verdict[2]}${nextBtn}${reveal}</div>${note}`;
+  if ($("nextBtn")) $("nextBtn").onclick = () => selectChallenge(chalIndex + 1);
+  if ($("revealBtn")) $("revealBtn").onclick = () => { $("revealArea").innerHTML = `<p class="hint-small">Try it yourself first. One correct answer is:</p><pre class="answer">${esc(c[1])}</pre>`; $("revealBtn").remove(); };
+}
+function selectChallenge(i){
+  chalIndex = i; $("feedback").innerHTML = ""; $("sql").value = "";
+  $("results").innerHTML = `<div class="empty">Run a query to see the results here.</div>`;
+  renderAll(); $("sql").focus();
+}
+function insertAtCursor(text){
+  const ta = $("sql"), s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+  const before = v.slice(0, s), needSpace = before && !/[\s(]$/.test(before) && !/^[,;)]/.test(text);
+  let ins = (needSpace ? " " : "") + text, caret = ins.length;
+  if (text === "SUM()"){ caret = ins.length - 1; }
+  if (text === "''"){ caret = ins.length - 1; }
+  ta.value = before + ins + v.slice(e);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = s + caret;
+}
+
+$("chips").innerHTML = CHIPS.map(c => `<button class="chip" type="button" data-k="${esc(c)}">${esc(c)}</button>`).join("");
+$("chips").onclick = e => { const b = e.target.closest(".chip"); if (b) insertAtCursor(b.dataset.k); };
+$("tableTabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; current = +b.dataset.i; chalIndex = -1; $("feedback").innerHTML = ""; renderAll(); };
+$("schema").onclick = e => { const td = e.target.closest("td[data-f]"); if (td) insertAtCursor(td.dataset.f); };
+$("chalList").onclick = e => { const b = e.target.closest("button[data-c]"); if (b) selectChallenge(+b.dataset.c); };
+$("runBtn").onclick = doRun;
+$("checkBtn").onclick = doCheck;
+$("clearBtn").onclick = () => { $("sql").value = ""; $("feedback").innerHTML = ""; $("sql").focus(); };
+$("viewTableBtn").onclick = () => { $("sql").value = `SELECT * FROM ${TABLES[current].name};`; doRun(); };
+$("sql").addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){ e.preventDefault(); chalIndex >= 0 ? doCheck() : doRun(); }
+  if (e.key === "Tab" && !e.shiftKey){ e.preventDefault(); insertAtCursor("    "); }
+});
+let resetArmed = false;
+$("resetBtn").onclick = () => {
+  if (!resetArmed){ resetArmed = true; $("resetBtn").textContent = "Click again to reset"; setTimeout(() => { resetArmed = false; $("resetBtn").textContent = "Reset data"; }, 3000); return; }
+  resetArmed = false; $("resetBtn").textContent = "Reset data"; buildDb(); renderSchema();
+  $("feedback").innerHTML = `<div class="msg info">All tables are back to their original data.</div>`;
+};
+
+initSqlJs().then(S => {
+  SQL = S; buildDb();
+  $("loading").hidden = true; $("app").hidden = false;
+  renderAll();
+  $("sql").value = "SELECT FirstName, House, TestScore\nFROM Students\nWHERE TestScore > 85\nORDER BY TestScore DESC;";
+  doRun();
+}).catch(err => {
+  $("loading").innerHTML = "The database engine could not load. Check your internet connection and reload the page.";
+});
+</script>
+</body>
+</html>
